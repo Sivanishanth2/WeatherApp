@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5-Day Animated Weather Forecast</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Styling and Animations: Aurora Glass Theme */
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --main-text: #e0f2fe;
+            --secondary-text: #94a3b8;
+            --accent-color: #facc15; /* Yellow for sunny look */
+            --card-hover: rgba(255, 255, 255, 0.25);
+            --current-card-glow: 0 0 40px rgba(56, 189, 248, 0.5);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background 1.5s ease;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3a8a, #0c4a6e); /* Default deep blue */
+            overflow-x: hidden;
+        }
+
+        /* --- Glassmorphism Container --- */
+        #weather-container {
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            background: var(--glass-bg);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: var(--main-text);
+            animation: fadeIn 1.5s ease-out;
+            max-width: 90%; /* Responsive width */
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- Forecast Card Style --- */
+        .forecast-card {
+            background: rgba(255, 255, 255, 0.08);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .forecast-card:hover {
+            background: var(--card-hover);
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* --- Current Card Glow & Animation --- */
+        #current-weather-card {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid var(--accent-color);
+            box-shadow: var(--current-card-glow);
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+            to { box-shadow: 0 0 30px rgba(56, 189, 248, 0.8); }
+        }
+
+        /* --- Unit Toggle Styling --- */
+        .unit-toggle {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .unit-toggle button {
+            padding: 8px 16px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: var(--secondary-text);
+        }
+        .unit-toggle button.active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0c4a6e;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+
+        /* --- Dynamic Backgrounds (More vibrant) --- */
+        .bg-clear {
+            background: linear-gradient(135deg, #1d4ed8, #38bdf8); /* Deep Sky Blue */
+        }
+        .bg-clouds {
+            background: linear-gradient(135deg, #475569, #94a3b8); /* Soft Grays */
+        }
+        .bg-rain {
+            background: linear-gradient(135deg, #1e293b, #334155); /* Darker, Stormy */
+        }
+        .bg-snow {
+            background: linear-gradient(135deg, #bfdbfe, #f0f9ff); /* Icy Light Blue */
+        }
+
+        /* --- Particle Animation (Subtle background noise) --- */
+        .weather-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .weather-particles::before {
+            content: '• • • • • • • • • •'; /* Represents subtle rain/sun glow */
+            position: absolute;
+            top: 50%;
+            left: -10%;
+            font-size: 40px;
+            color: rgba(255, 255, 255, 0.5);
+            opacity: 0.2;
+            animation: moveParticles 60s linear infinite;
+        }
+
+        @keyframes moveParticles {
+            0% { transform: translateX(0) rotate(0deg); }
+            100% { transform: translateX(100%) rotate(360deg); }
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+            #current-card-content {
+                flex-direction: column;
+                align-items: center;
+            }
+            #current-details {
+                margin-top: 1rem;
+            }
+        }
+        @media (max-width: 768px) {
+            #forecast-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            #current-weather-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body id="app-body">
+    <div id="weather-container" class="w-full lg:max-w-7xl mx-4 p-6 sm:p-8 md:p-12 transition-all duration-700">
+        <div class="weather-particles"></div>
+        
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-extrabold mb-4 sm:mb-0 text-white tracking-wider">Aurora Weather</h1>
+            
+            <!-- Unit Toggle Feature -->
+            <div class="unit-toggle" id="unit-toggle">
+                <button id="celsius-btn" class="active">°C</button>
+                <button id="fahrenheit-btn">°F</button>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-8 w-full max-w-xl mx-auto">
+            <input type="text" id="city-input" placeholder="Enter city name (e.g., Singapore, Paris)"
+                   class="p-4 w-full rounded-xl text-lg focus:outline-none placeholder-gray-400">
+            <button id="search-button" onclick="handleSearch()"
+                    class="bg-sky-500 hover:bg-sky-400 text-white font-semibold py-3 px-6 rounded-xl shadow-2xl transition duration-300 transform hover:scale-105 flex items-center justify-center">
+                <i data-lucide="search" class="w-5 h-5 mr-2"></i> Search
+            </button>
+        </div>
+
+        <!-- Location and Status Display -->
+        <div class="text-center mb-8">
+            <p class="text-3xl font-bold text-gray-200" id="current-location">Loading...</p>
+            <p class="text-sm text-gray-400 mt-1" id="status-message">Fetching weather data...</p>
+        </div>
+
+        <!-- Current Weather Detail Card (New Feature) -->
+        <div id="current-weather-card" class="rounded-2xl p-6 mb-10 shadow-2xl transition duration-500">
+            <!-- Content injected by JS -->
+            <p class="text-center text-xl font-light">Loading today's details...</p>
+        </div>
+
+        <!-- 5-Day Forecast Grid -->
+        <h2 class="text-2xl font-semibold mb-6 border-b border-white/20 pb-2">5-Day Forecast</h2>
+        <div id="forecast-cards" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+            <!-- Forecast cards will be injected here by JavaScript -->
+        </div>
+
+    </div>
+
+    <script type="module">
+        // --- Configuration (Updated for WeatherAPI.com) ---
+        const API_KEY = "d3feb561a4b147ce9d7132514252809"; // <<< IMPORTANT: Replace with your actual WeatherAPI.com API Key
+        const API_BASE = "https://api.weatherapi.com/v1/forecast.json";
+        const DEFAULT_CITY = "Tokyo";
+        const FORECAST_DAYS = 5; // Requesting 5 days of forecast
+
+        // --- State Management ---
+        let isMetric = true; // true for Celsius, false for Fahrenheit
+        let storedDailyForecasts = []; // To hold data for quick unit switching
+
+        // --- DOM Elements ---
+        const appBody = document.getElementById('app-body');
+        const cityInput = document.getElementById('city-input');
+        const locationDisplay = document.getElementById('current-location');
+        const statusMessage = document.getElementById('status-message');
+        const forecastCardsContainer = document.getElementById('forecast-cards');
+        const currentCardContainer = document.getElementById('current-weather-card');
+        const celsiusBtn = document.getElementById('celsius-btn');
+        const fahrenheitBtn = document.getElementById('fahrenheit-btn');
+
+        // --- Utility Functions ---
+
+        /**
+         * Converts Unix timestamp to a human-readable day name.
+         * @param {number} timestamp - The Unix timestamp (epoch time).
+         * @param {number} index - Index in the forecast list (0 is today).
+         * @returns {string} The day name (e.g., "Mon", "Today").
+         */
+        const getDayName = (timestamp, index) => {
+            const date = new Date(timestamp * 1000);
+            if (index === 0) return "Today";
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        };
+
+        /**
+         * Converts Celsius to Fahrenheit.
+         * @param {number} celsius - Temperature in Celsius.
+         * @returns {number} Temperature in Fahrenheit.
+         */
+        const toFahrenheit = (celsius) => {
+            return Math.round((celsius * 9 / 5) + 32);
+        };
+        
+        /**
+         * Converts Kilometers per hour to meters per second (1 kph ≈ 0.2778 m/s).
+         * @param {number} kph - Wind speed in kilometers per hour.
+         * @returns {number} Wind speed in meters per second, rounded to 1 decimal place.
+         */
+        const kphToMs = (kph) => {
+            return (kph / 3.6).toFixed(1);
+        }
+
+        /**
+         * Changes the background based on the overall weather condition.
+         * @param {string} conditionText - The weather condition text (e.g., "Partly cloudy", "Rain").
+         */
+        const updateAppBackground = (conditionText) => {
+            appBody.className = 'flex items-center justify-center min-h-screen transition-all duration-700 overflow-x-hidden';
+            let bgClass = 'bg-clear'; 
+            const text = conditionText.toLowerCase();
+
+            if (text.includes('rain') || text.includes('drizzle') || text.includes('thunder')) {
+                bgClass = 'bg-rain';
+            } else if (text.includes('cloudy') || text.includes('overcast') || text.includes('mist') || text.includes('fog')) {
+                bgClass = 'bg-clouds';
+            } else if (text.includes('snow') || text.includes('sleet') || text.includes('ice')) {
+                bgClass = 'bg-snow';
+            } else if (text.includes('sun') || text.includes('clear')) {
+                bgClass = 'bg-clear';
+            }
+
+            // Remove existing background classes and add the new one
+            appBody.classList.remove('bg-clear', 'bg-clouds', 'bg-rain', 'bg-snow');
+            appBody.classList.add(bgClass);
+        };
+
+        // --- Core Fetching Logic ---
+
+        /**
+         * Processes the WeatherAPI data into a standardized daily forecast array.
+         * @param {Object} data - The raw JSON data from WeatherAPI.
+         * @returns {Array<Object>} An array of daily forecast objects.
+         */
+        const processForecastData = (data) => {
+            const forecasts = [];
+            const forecastDays = data.forecast.forecastday;
+            const current = data.current;
+
+            // Loop through the forecast days
+            forecastDays.forEach((dayData, index) => {
+                const day = dayData.day;
+                const dateEpoch = dayData.date_epoch;
+
+                let tempC, windKph, humidity, description, iconUrl;
+                
+                // For the current day (index 0), use the 'current' data for up-to-the-minute details
+                if (index === 0) {
+                    tempC = current.temp_c;
+                    windKph = current.wind_kph;
+                    humidity = current.humidity;
+                    description = current.condition.text;
+                    iconUrl = current.condition.icon;
+                } else {
+                    // For future days, use the 'day' average data for the central temperature
+                    tempC = day.avgtemp_c;
+                    windKph = day.maxwind_kph; // Using max wind for a daily detail
+                    humidity = day.avghumidity;
+                    description = day.condition.text;
+                    iconUrl = day.condition.icon;
+                }
+
+                // Push the standardized object
+                forecasts.push({
+                    dayName: getDayName(dateEpoch, index),
+                    tempC: Math.round(tempC),
+                    minC: Math.round(day.mintemp_c),
+                    maxC: Math.round(day.maxtemp_c),
+                    description: description,
+                    // WeatherAPI icons often start with '//', so we prefix 'https:'
+                    iconUrl: `https:${iconUrl}`, 
+                    main: description, // Used for background mapping
+                    humidity: Math.round(humidity),
+                    windSpeedMs: kphToMs(windKph), // Convert to m/s
+                });
+            });
+
+            return forecasts;
+        };
+
+        /**
+         * Fetches weather data for a given city using WeatherAPI.com.
+         * @param {string} city - The name of the city.
+         */
+        const fetchWeatherData = async (city) => {
+            if (API_KEY === "YOUR_API_KEY_HERE") {
+                statusMessage.textContent = "⚠️ ERROR: Please replace 'YOUR_API_KEY_HERE' in the code with your actual WeatherAPI.com API key.";
+                return;
+            }
+            
+            statusMessage.textContent = `Fetching weather for ${city}...`;
+            // Request the 5-day forecast, no air quality (aqi), no alerts.
+            const url = `${API_BASE}?key=${API_KEY}&q=${city}&days=${FORECAST_DAYS}&aqi=no&alerts=no`;
+
+            try {
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    let errorMessage = `HTTP error! Status: ${response.status}`;
+
+                    if (errorData.error && errorData.error.message) {
+                        errorMessage = `Error: ${errorData.error.message}`;
+                    }
+
+                    if (response.status === 400) {
+                        errorMessage = `City not found or Invalid Request.`;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                const dailyForecasts = processForecastData(data);
+                
+                // Store the Celsius-based data
+                storedDailyForecasts = dailyForecasts;
+                
+                // Use the city name from the API response for accuracy
+                const locationName = `${data.location.name}, ${data.location.country}`;
+                
+                renderForecast(locationName, storedDailyForecasts, isMetric);
+
+            } catch (error) {
+                console.error("Failed to fetch weather data:", error);
+                statusMessage.textContent = `❌ ${error.message}`;
+                locationDisplay.textContent = "Forecast Unavailable";
+                currentCardContainer.innerHTML = `<p class="text-center text-red-300 font-semibold">Failed to load current weather. Please check city name and API Key.</p>`;
+                forecastCardsContainer.innerHTML = '';
+            }
+        };
+
+        // --- Rendering Logic ---
+
+        /**
+         * Renders the main current weather card with details.
+         * @param {Object} currentDay - Today's forecast data.
+         * @param {boolean} metric - True if displaying Celsius.
+         */
+        const renderCurrentWeather = (currentDay, metric) => {
+            const temp = metric ? currentDay.tempC : toFahrenheit(currentDay.tempC);
+            const unit = metric ? '°C' : '°F';
+            const windUnit = 'm/s';
+            
+            const cardHtml = `
+                <div id="current-card-content" class="flex flex-wrap justify-between items-center">
+                    <!-- Main Temperature & Icon -->
+                    <div class="flex items-center space-x-6">
+                        <img src="${currentDay.iconUrl}" alt="${currentDay.description}" 
+                            class="w-32 h-32 md:w-40 md:h-40 filter drop-shadow-xl animate-bounce" style="animation-duration: 5s;">
+                        <div>
+                            <p class="text-6xl md:text-8xl font-extrabold text-white">${temp}${unit}</p>
+                            <p class="text-xl md:text-2xl text-gray-300 capitalize">${currentDay.description}</p>
+                        </div>
+                    </div>
+
+                    <!-- Details (Humidity & Wind) -->
+                    <div id="current-details" class="flex flex-col space-y-3 p-4 bg-white/10 rounded-xl shadow-inner md:ml-6">
+                        <div class="flex items-center text-lg font-medium">
+                            <i data-lucide="droplets" class="w-6 h-6 mr-3 text-sky-300"></i>
+                            <span class="text-gray-300">Humidity: </span>
+                            <span class="ml-2 font-bold text-white">${currentDay.humidity}%</span>
+                        </div>
+                        <div class="flex items-center text-lg font-medium">
+                            <i data-lucide="wind" class="w-6 h-6 mr-3 text-sky-300"></i>
+                            <span class="text-gray-300">Wind Speed: </span>
+                            <span class="ml-2 font-bold text-white">${currentDay.windSpeedMs}${windUnit}</span>
+                        </div>
+                        <div class="flex items-center text-lg font-medium">
+                            <i data-lucide="thermometer" class="w-6 h-6 mr-3 text-sky-300"></i>
+                            <span class="text-gray-300">High / Low: </span>
+                            <span class="ml-2 font-bold text-white">
+                                ${metric ? currentDay.maxC : toFahrenheit(currentDay.maxC)}${unit} / ${metric ? currentDay.minC : toFahrenheit(currentDay.minC)}${unit}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            currentCardContainer.innerHTML = cardHtml;
+        };
+
+
+        /**
+         * Renders the fetched and processed forecast data onto the page.
+         * @param {string} location - The city and country name.
+         * @param {Array<Object>} dailyForecasts - The 5-day forecast data (in Celsius).
+         * @param {boolean} metric - True if displaying Celsius.
+         */
+        const renderForecast = (location, dailyForecasts, metric) => {
+            forecastCardsContainer.innerHTML = '';
+            locationDisplay.textContent = location;
+            statusMessage.textContent = "Successfully loaded 5-day forecast.";
+
+            if (dailyForecasts.length === 0) {
+                statusMessage.textContent = "No 5-day forecast data available.";
+                return;
+            }
+
+            // 1. Update Current Weather Card and Background
+            const currentDay = dailyForecasts[0];
+            renderCurrentWeather(currentDay, metric);
+            updateAppBackground(currentDay.description);
+
+            // 2. Render 5-day cards
+            dailyForecasts.forEach((dayData) => {
+                const temp = metric ? dayData.tempC : toFahrenheit(dayData.tempC);
+                const min = metric ? dayData.minC : toFahrenheit(dayData.minC);
+                const max = metric ? dayData.maxC : toFahrenheit(dayData.maxC);
+                const unit = metric ? '°C' : '°F';
+                
+
+                const cardHtml = `
+                    <div class="forecast-card p-4 flex flex-col items-center text-center shadow-xl">
+                        <h3 class="text-xl font-bold mb-2">${dayData.dayName}</h3>
+                        <img src="${dayData.iconUrl}" alt="${dayData.description}" class="w-16 h-16 filter drop-shadow-lg animate-pulse" style="animation-duration: 4s;">
+                        <p class="text-3xl font-light mt-2">${temp}${unit}</p>
+                        <p class="text-sm text-gray-400 capitalize">${dayData.description}</p>
+                        <p class="text-sm text-gray-300 mt-2 font-medium">
+                            <span class="text-sky-300">H: ${max}${unit}</span> / <span class="text-gray-400">L: ${min}${unit}</span>
+                        </p>
+                    </div>
+                `;
+                forecastCardsContainer.innerHTML += cardHtml;
+            });
+
+            // Initialize Lucide icons after DOM update
+            lucide.createIcons();
+        };
+
+        // --- Event Handlers ---
+
+        /**
+         * Handles the search button click or Enter key press.
+         */
+        const handleSearch = () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                // Reset unit to metric when searching a new city for a clean start
+                toggleUnits(true, true); 
+                fetchWeatherData(city);
+            } else {
+                statusMessage.textContent = "Please enter a valid city name.";
+            }
+        };
+
+        /**
+         * Toggles the temperature display units between Celsius and Fahrenheit.
+         * @param {boolean} isNewMetric - The desired unit state (true for C, false for F).
+         * @param {boolean} [silent=false] - If true, skips re-rendering the forecast (used for initialization).
+         */
+        const toggleUnits = (isNewMetric, silent = false) => {
+            if (isMetric === isNewMetric && !silent) return; // No change needed
+
+            isMetric = isNewMetric;
+            
+            // Update button visual state
+            celsiusBtn.classList.toggle('active', isMetric);
+            fahrenheitBtn.classList.toggle('active', !isMetric);
+
+            // Re-render the forecast using the stored data and new unit setting
+            if (storedDailyForecasts.length > 0 && !silent) {
+                renderForecast(locationDisplay.textContent, storedDailyForecasts, isMetric);
+            }
+        };
+
+
+        // Add event listeners
+        cityInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                handleSearch();
+            }
+        });
+
+        celsiusBtn.addEventListener('click', () => toggleUnits(true));
+        fahrenheitBtn.addEventListener('click', () => toggleUnits(false));
+
+        // --- Initialization ---
+
+        /**
+         * Initializes the application.
+         */
+        const init = () => {
+            lucide.createIcons();
+            cityInput.value = DEFAULT_CITY; // Set default city in input
+            fetchWeatherData(DEFAULT_CITY);
+        };
+
+        window.onload = init;
+    </script>
+</body>
+</html>
